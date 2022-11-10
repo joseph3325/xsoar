@@ -1,0 +1,31 @@
+commonfields:
+  id: 67136c5d-f7ee-424e-8e35-e2d87760c661
+  version: 3
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-FileReadExample
+script: |-
+  # Retrieve the argument 'entryId'
+  entryId = demisto.args().get('entryId')
+  # Function which takes the entryId for a json file as an arg and returns the json
+  def get_file(entry_id):
+      fp = demisto.executeCommand('getFilePath', {'id': entry_id})
+      fp = fp[0]['Contents']['path']
+      with open(fp, 'r') as f:
+          data = json.loads(f.read())
+      return data
+
+
+  get_file(entryId)
+type: python
+tags: []
+enabled: true
+args:
+- name: entryId
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.10.8.35482
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
