@@ -1,0 +1,92 @@
+commonfields:
+  id: 4bae435f-9ba8-49fc-809b-092e0223b0b6
+  version: 1
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-FilterRFC-1918
+script: |2+
+
+  import ipaddress, ast
+
+  RFC_RANGES = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.1/32']
+
+
+  def filter_addresses(ip_addrs: str) -> list:
+      found_private_ips = []
+      for _range in RFC_RANGES:
+          n = ipaddress.ip_network(_range)
+          netw = int(n.network_address)
+          mask = int(n.netmask)
+
+          for val in ip_addrs:
+              try:
+                  a = int(ipaddress.ip_address(val))
+              except ValueError:
+                  pass
+
+              in_network = (a & mask) == netw
+              if in_network:
+                  if val not in found_private_ips:
+                      found_private_ips.append(val)
+
+      fltrd_ips = [x for x in ip_addrs if x not in found_private_ips]
+      return fltrd_ips
+
+
+
+  ''' MAIN FUNCTION '''
+
+
+  def main():
+
+      try:
+          ips = demisto.args().get('ip_addrs')
+          if type(ips) == str and '[' in ips:
+              ips = ast.literal_eval(ips)
+          elif type(ips) == str:
+              ips = [ips]
+          fa = filter_addresses(ips)
+
+          out_key = demisto.args().get('context_key', "RFC_filtered_IPs")
+          results_dict = {
+          'Type' : entryTypes['note'],
+          'Contents': fa,
+          'ContentsFormat': formats['json'],
+          'HumanReadable': '\n'.join(fa),
+          'EntryContext': {'Results': fa}
+              }
+
+          demisto.results(results_dict)
+
+      except Exception as ex:
+          demisto.error(traceback.format_exc())  # print the traceback
+          return_error(f'Failed to execute BaseScript. Error: {str(ex)}')
+
+
+  ''' ENTRY POINT '''
+
+
+  if __name__ in ('__main__', '__builtin__', 'builtins'):
+      main()
+
+type: python
+tags: []
+comment: This will take a list of IP addresses and remove RFC-1918 compliant addresses
+  and the loopback address
+enabled: true
+args:
+- name: ip_addrs
+  required: true
+  default: true
+  description: An array of IP Addresses
+- name: context_key
+  description: Optional context key to set the values equal to
+outputs:
+- contextPath: Results
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.9.8.24399
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
