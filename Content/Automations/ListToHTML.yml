@@ -1,0 +1,141 @@
+commonfields:
+  id: a9bcfafb-ad7b-4915-8e10-8b48497e128b
+  version: 82
+vcShouldKeepItemLegacyProdMachine: false
+name: ListToHTML
+script: |
+  HTML_ENTITY_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  }
+
+  def format_cell(cell) ->str:
+      if isinstance(cell, str):
+          return cell
+      if isinstance(cell, list):
+          return ','.join(cell)
+      else:
+          return str(cell)
+
+
+  def string_escape_HTML(in_str: str) -> str:
+      out = ''
+      for c in in_str:
+          if c in HTML_ENTITY_MAP:
+              out+= HTML_ENTITY_MAP[c]
+          else:
+              out+=c
+      return out
+
+
+  def table_to_HTML(title: str, t: dict, ok: str, pretty: str) -> str:
+      if t and not isinstance(t, list):
+          t = [t]
+
+
+      headers=t[0].keys()
+      html_results = ''
+
+      if title:
+          html_results = '<h3>' + title + '</h3>'
+
+      if pretty=='yes':
+          html_results += """<style>
+  #results {
+    font-family: Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+    position: relative;
+  }
+
+  #results td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  #results tr:nth-child(even){background-color: #f2f2f2;}
+
+  #results tr:hover {background-color: #ddd;}
+
+  #results th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: left;
+    background-color: #02447F;
+    color: white;
+    position: sticky;
+    top: 0;
+  }
+  </style>"""
+
+      if t and len(t) > 0:
+          html_results += '<table id="results" border="1" cellspacing="0" cellpadding="3"><tr>' + ''.join([f'<th>{x}</th>' for x in headers]) + '</tr>'
+
+          for entry in t:
+              vals = []
+              for head in headers:
+                  try:
+                      vals.append(string_escape_HTML(format_cell(entry[head])))
+                  except KeyError:
+                      pass
+              html_results += '<tr>' + ''.join([f'<td>{x}</td>' for x in vals]) + '</tr>'
+          html_results+= '</table>'
+      else:
+          return "Data does not exist"
+
+      return CommandResults(
+      outputs_prefix=ok,
+      outputs=html_results,
+      readable_output=f'Created Table {ok}'
+      )
+  def main():
+      args = demisto.args()
+      title = args.get('title')
+      table = args.get('table')
+      outkey = args.get('outkey')
+      pretty = args.get('pretty')
+      try:
+          return_results(table_to_HTML(title, table, outkey, pretty))
+      except Exception as e:
+          demisto.error(traceback.format_exc())  # print the traceback
+          return_error("\n".join(("Failed to execute {command} command.", "Error:", str(e))))
+
+
+  if __name__ in ('__main__', '__builtin__', 'builtins'):
+      main()
+type: python
+tags:
+- Utility
+comment: Converts a given array to an HTML table
+enabled: true
+args:
+- name: table
+  required: true
+  default: true
+  description: The table to convert to HTML
+  isArray: true
+- name: title
+  description: The optional title for the table
+- name: outkey
+  required: true
+  description: The key to save the output to
+- name: pretty
+  auto: PREDEFINED
+  predefined:
+  - "yes"
+  - "no"
+  description: Add Mckinsey styling to table
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.10.8.36650
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
