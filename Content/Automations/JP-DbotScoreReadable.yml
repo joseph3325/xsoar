@@ -1,0 +1,70 @@
+commonfields:
+  id: 62b3016a-0292-43b7-8572-bf61e5adfd08
+  version: 8
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-DbotScoreReadable
+script: |2-
+
+
+  contextKey = demisto.args()['contextKey']
+
+
+
+
+  def format_dbot(context_key: str):
+      """
+      This method will grab the DBotScore key from context and update it to include
+      the human readable version of the score -> Example - score 0 -> 'unknown'
+
+      args
+      context_key -> the key to set the result to, default is DBotScore
+      """
+
+      dbot_map = {
+          0: 'Unknown',
+          1: 'Good',
+          2: 'Suspicious',
+          3: 'Bad'
+      }
+
+      dbotscore = demisto.context()['DBotScore']
+      if dbotscore:
+          if context_key == 'DBotScore':
+              demisto.executeCommand('DeleteContext', {'key': context_key})
+          for ea in dbotscore: ea.update({'scoreString': dbot_map[ea['Score']]})
+          # demisto.executeCommnad('Set', {'DBotScore': dbotscore})
+
+          result = CommandResults(
+              outputs={context_key: dbotscore},
+              readable_output=f"DBot Scores updated to key {context_key}"
+              )
+
+          return_results(result)
+      else:
+          return_results('Unable to find DBot Scores in Context')
+
+
+  format_dbot(contextKey)
+type: python
+tags: []
+comment: "This automation will check the current context for a DBotScore key - If
+  the key exists the script will update the DbotScore data with the human readable
+  version of the score. \n\nFor example if the DBot Score is '0' the script will add
+  a new key to the object named 'scoreString' and set the value to 'Unknown'. \n\nBy
+  default this automation will update the existing DBotScore key with the new values.
+  If you do not want to update the existing DBot Score key, you can pass the argument
+  'contextKey' and this will set the results to the given key. "
+enabled: true
+args:
+- name: contextKey
+  default: true
+  description: The key to set the results to. The default is DBotScore
+  defaultValue: DBotScore
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.10.8.39276
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
