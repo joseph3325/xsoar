@@ -1,0 +1,284 @@
+commonfields:
+  id: 9b5d26b1-060f-452c-8eed-92ad4d3800f0
+  version: 11
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-DateStringToISOFormat
+script: |
+  import pytz
+  register_module_line('DateStringToISOFormat', 'start', __line__())
+
+  from dateutil.parser import ParserError, parse  # type: ignore[attr-defined]
+  from datetime import timezone
+
+
+  def parse_datestring_to_iso(date_value: str, day_first: bool, year_first: bool, fuzzy: bool, add_utc_timezone: bool = False, add_timezone=False) -> str:
+      try:
+          datetime_obj = parse(date_value, dayfirst=day_first, yearfirst=year_first, fuzzy=fuzzy)
+          if add_timezone:
+              datetime_obj = datetime_obj.astimezone(pytz.timezone(add_timezone))
+          if add_utc_timezone and not datetime_obj.tzinfo:
+              datetime_obj = datetime_obj.replace(tzinfo=timezone.utc)
+          return datetime_obj.isoformat()
+      except ParserError as e:
+          demisto.error(f'ParserError occurred: {e}\n Returning the original date string.')
+          date_string = date_value
+      return date_string
+
+
+  def main():
+      args = demisto.args()
+      date_value = args.get('value')
+      day_first = args.get('dayfirst', 'True').lower() == 'true'
+      year_first = args.get('yearfirst', 'False').lower() == 'true'
+      fuzzy = args.get('fuzzy', 'True').lower() == 'true'
+      add_utc_timezone = args.get('add_utc_timezone', 'true').lower() == 'true'
+      add_timezone = args.get('add_timezone', False)
+      iso_string = parse_datestring_to_iso(date_value, day_first, year_first, fuzzy, add_utc_timezone, add_timezone)
+      demisto.results(iso_string)
+
+
+  # python2 uses __builtin__ python3 uses builtins
+  if __name__ in ('__builtin__', 'builtins', '__main__'):
+      main()
+
+  register_module_line('DateStringToISOFormat', 'end', __line__())
+type: python
+tags:
+- transformer
+- date
+comment: "This is a thin wrapper around the `dateutil.parser.parse` function. It will
+  parse a string containing a date/time stamp and return it in ISO 8601 format.\nThis
+  version is a clone of the OOTB version. It has been extended to allow for the addition
+  of a time zone. "
+enabled: true
+args:
+- name: value
+  required: true
+  description: Date value to convert.
+- name: dayfirst
+  default: true
+  auto: PREDEFINED
+  predefined:
+  - "true"
+  - "false"
+  description: Whether to interpret the first value in an ambiguous 3-integer date
+    (e.g. 01/05/09) as the day (``True``) or month (``False``). If ``yearfirst`` is
+    set to ``True``, this distinguishes between YDM and YMD.
+  defaultValue: "true"
+- name: yearfirst
+  default: true
+  auto: PREDEFINED
+  predefined:
+  - "true"
+  - "false"
+  description: Whether to interpret the first value in an ambiguous 3-integer date
+    (e.g. 01/05/09) as the year. If ``True``, the first number is taken to be the
+    year, otherwise the last number is taken to be the year.
+  defaultValue: "false"
+- name: fuzzy
+  default: true
+  auto: PREDEFINED
+  predefined:
+  - "true"
+  - "false"
+  description: Whether to allow fuzzy parsing, allowing for string like "Today is
+    January 1, 2047 at 8:21:00AM".
+  defaultValue: "true"
+- name: add_utc_timezone
+  auto: PREDEFINED
+  predefined:
+  - "true"
+  - "false"
+  description: Whether to add UTC timezone to the date string returned in case offset-naive
+    date was provided as input.
+  defaultValue: "false"
+- name: add_timezone
+  auto: PREDEFINED
+  predefined:
+  - America/Adak
+  - America/Anchorage
+  - America/Anguilla
+  - America/Antigua
+  - America/Araguaina
+  - America/Argentina/Buenos_Aires
+  - America/Argentina/Catamarca
+  - America/Argentina/ComodRivadavia
+  - America/Argentina/Cordoba
+  - America/Argentina/Jujuy
+  - America/Argentina/La_Rioja
+  - America/Argentina/Mendoza
+  - America/Argentina/Rio_Gallegos
+  - America/Argentina/Salta
+  - America/Argentina/San_Juan
+  - America/Argentina/San_Luis
+  - America/Argentina/Tucuman
+  - America/Argentina/Ushuaia
+  - America/Aruba
+  - America/Asuncion
+  - America/Atikokan
+  - America/Atka
+  - America/Bahia
+  - America/Bahia_Banderas
+  - America/Barbados
+  - America/Belem
+  - America/Belize
+  - America/Blanc-Sablon
+  - America/Boa_Vista
+  - America/Bogota
+  - America/Boise
+  - America/Buenos_Aires
+  - America/Cambridge_Bay
+  - America/Campo_Grande
+  - America/Cancun
+  - America/Caracas
+  - America/Catamarca
+  - America/Cayenne
+  - America/Cayman
+  - America/Chicago
+  - America/Chihuahua
+  - America/Coral_Harbour
+  - America/Cordoba
+  - America/Costa_Rica
+  - America/Creston
+  - America/Cuiaba
+  - America/Curacao
+  - America/Danmarkshavn
+  - America/Dawson
+  - America/Dawson_Creek
+  - America/Denver
+  - America/Detroit
+  - America/Dominica
+  - America/Edmonton
+  - America/Eirunepe
+  - America/El_Salvador
+  - America/Ensenada
+  - America/Fort_Nelson
+  - America/Fort_Wayne
+  - America/Fortaleza
+  - America/Glace_Bay
+  - America/Godthab
+  - America/Goose_Bay
+  - America/Grand_Turk
+  - America/Grenada
+  - America/Guadeloupe
+  - America/Guatemala
+  - America/Guayaquil
+  - America/Guyana
+  - America/Halifax
+  - America/Havana
+  - America/Hermosillo
+  - America/Indiana/Indianapolis
+  - America/Indiana/Knox
+  - America/Indiana/Marengo
+  - America/Indiana/Petersburg
+  - America/Indiana/Tell_City
+  - America/Indiana/Vevay
+  - America/Indiana/Vincennes
+  - America/Indiana/Winamac
+  - America/Indianapolis
+  - America/Inuvik
+  - America/Iqaluit
+  - America/Jamaica
+  - America/Jujuy
+  - America/Juneau
+  - America/Kentucky/Louisville
+  - America/Kentucky/Monticello
+  - America/Knox_IN
+  - America/Kralendijk
+  - America/La_Paz
+  - America/Lima
+  - America/Los_Angeles
+  - America/Louisville
+  - America/Lower_Princes
+  - America/Maceio
+  - America/Managua
+  - America/Manaus
+  - America/Marigot
+  - America/Martinique
+  - America/Matamoros
+  - America/Mazatlan
+  - America/Mendoza
+  - America/Menominee
+  - America/Merida
+  - America/Metlakatla
+  - America/Mexico_City
+  - America/Miquelon
+  - America/Moncton
+  - America/Monterrey
+  - America/Montevideo
+  - America/Montreal
+  - America/Montserrat
+  - America/Nassau
+  - America/New_York
+  - America/Nipigon
+  - America/Nome
+  - America/Noronha
+  - America/North_Dakota/Beulah
+  - America/North_Dakota/Center
+  - America/North_Dakota/New_Salem
+  - America/Nuuk
+  - America/Ojinaga
+  - America/Panama
+  - America/Pangnirtung
+  - America/Paramaribo
+  - America/Phoenix
+  - America/Port-au-Prince
+  - America/Port_of_Spain
+  - America/Porto_Acre
+  - America/Porto_Velho
+  - America/Puerto_Rico
+  - America/Punta_Arenas
+  - America/Rainy_River
+  - America/Rankin_Inlet
+  - America/Recife
+  - America/Regina
+  - America/Resolute
+  - America/Rio_Branco
+  - America/Rosario
+  - America/Santa_Isabel
+  - America/Santarem
+  - America/Santiago
+  - America/Santo_Domingo
+  - America/Sao_Paulo
+  - America/Scoresbysund
+  - America/Shiprock
+  - America/Sitka
+  - America/St_Barthelemy
+  - America/St_Johns
+  - America/St_Kitts
+  - America/St_Lucia
+  - America/St_Thomas
+  - America/St_Vincent
+  - America/Swift_Current
+  - America/Tegucigalpa
+  - America/Thule
+  - America/Thunder_Bay
+  - America/Tijuana
+  - America/Toronto
+  - America/Tortola
+  - America/Vancouver
+  - America/Virgin
+  - America/Whitehorse
+  - America/Winnipeg
+  - America/Yakutat
+  - America/Yellowknife
+  - US/Alaska
+  - US/Aleutian
+  - US/Arizona
+  - US/Central
+  - US/East-Indiana
+  - US/Eastern
+  - US/Hawaii
+  - US/Indiana-Starke
+  - US/Michigan
+  - US/Mountain
+  - US/Pacific
+  - US/Samoa
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.9.8.24399
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
