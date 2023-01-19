@@ -1,12 +1,12 @@
 commonfields:
   id: 9b5d26b1-060f-452c-8eed-92ad4d3800f0
-  version: 11
+  version: 7
 vcShouldKeepItemLegacyProdMachine: false
-name: JP-DateStringToISOFormat
+name: Key-DateStringToISOFormat
 script: |
   import pytz
   register_module_line('DateStringToISOFormat', 'start', __line__())
-
+  from zoneinfo import ZoneInfo
   from dateutil.parser import ParserError, parse  # type: ignore[attr-defined]
   from datetime import timezone
 
@@ -15,7 +15,10 @@ script: |
       try:
           datetime_obj = parse(date_value, dayfirst=day_first, yearfirst=year_first, fuzzy=fuzzy)
           if add_timezone:
-              datetime_obj = datetime_obj.astimezone(pytz.timezone(add_timezone))
+              datetime_obj = datetime_obj.replace(tzinfo=ZoneInfo('US/Eastern'))
+              if add_utc_timezone:
+                  datetime_ob = parse(datetime_obj.isoformat())
+                  datetime_obj = datetime_obj.astimezone(pytz.timezone('UTC'))
           if add_utc_timezone and not datetime_obj.tzinfo:
               datetime_obj = datetime_obj.replace(tzinfo=timezone.utc)
           return datetime_obj.isoformat()
