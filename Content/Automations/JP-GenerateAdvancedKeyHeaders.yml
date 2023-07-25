@@ -1,0 +1,61 @@
+commonfields:
+  id: 5c33294e-7db6-40af-8a94-5d534a5946af
+  version: 11
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-GenerateAdvancedKeyHeaders
+script: |-
+  from datetime import datetime, timezone
+  import secrets, string, hashlib
+
+  key_id = demisto.args()['api_key_id']
+  api_key = demisto.args()['api_key']
+
+
+  def generate_headers(api_key, key_id):
+
+     # Generate a 64 bytes random string
+      nonce = "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(64)])
+      # Get the current timestamp as milliseconds.
+      timestamp = int(datetime.now(timezone.utc).timestamp()) * 1000
+      # Generate the auth key:
+      auth_key = "%s%s%s" % (api_key, nonce, timestamp)
+      # Convert to bytes object
+      auth_key = auth_key.encode("utf-8")
+      # Calculate sha256:
+      api_key_hash = hashlib.sha256(auth_key).hexdigest()
+      # Generate HTTP call headers
+      headers = {
+          "x-xdr-timestamp": str(timestamp),
+          "x-xdr-nonce": nonce,
+          "x-xdr-auth-id": str(key_id),
+          "Authorization": api_key_hash
+              }
+
+
+      return {'headers': headers}
+
+  headers = generate_headers(api_key=api_key, key_id=key_id)
+
+
+  return_results(CommandResults(outputs=headers, readable_output="Successfully generated headers"))
+type: python
+tags:
+- example
+- DemistoAPI
+comment: This script will take an advanced XSOAR api key and key id as args and return
+  the headers that should be associated with the api call
+enabled: true
+args:
+- name: api_key_id
+  required: true
+- name: api_key
+  required: true
+  secret: true
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.9.7.24076
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
