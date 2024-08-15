@@ -1,0 +1,498 @@
+id: 6b081820-4c02-4d4b-889e-9f1e1babc0d3
+version: 24
+vcShouldKeepItemLegacyProdMachine: false
+name: JP - Export Content Bundle
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: e9ec1b44-b0b4-4740-80c4-bc9b812a9b0f
+    type: start
+    task:
+      id: e9ec1b44-b0b4-4740-80c4-bc9b812a9b0f
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "4"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: d91109de-775e-4d6a-85b1-c9e4570c61cd
+    type: regular
+    task:
+      id: d91109de-775e-4d6a-85b1-c9e4570c61cd
+      version: -1
+      name: Call to the content bundle endpoint
+      description: Download files from Core server.
+      script: Core REST API|||core-api-download
+      type: regular
+      iscommand: true
+      brand: Core REST API
+    nexttasks:
+      '#error#':
+      - "8"
+      '#none#':
+      - "11"
+    scriptarguments:
+      retry-count:
+        simple: "2"
+      uri:
+        simple: /xsoar/content/bundle
+    separatecontext: false
+    continueonerror: true
+    continueonerrortype: errorPath
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 540
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: 07e3294c-f57d-42d7-8095-30d79a9a18e2
+    type: regular
+    task:
+      id: 07e3294c-f57d-42d7-8095-30d79a9a18e2
+      version: -1
+      name: Get the server URL
+      description: Get the Server URL.
+      scriptName: GetServerURL
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "5"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 190
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: 83671b20-39bf-4f5f-860b-ce1460598edd
+    type: regular
+    task:
+      id: 83671b20-39bf-4f5f-860b-ce1460598edd
+      version: -1
+      name: Set the environment
+      description: |-
+        Set a value in context under the key you entered. If no value is entered, the script doesn't do anything.
+
+        This automation runs using the default Limited User role, unless you explicitly change the permissions.
+        For more information, see the section about permissions here:
+        https://docs-cortex.paloaltonetworks.com/r/Cortex-XSOAR/6.10/Cortex-XSOAR-Administrator-Guide/Automations
+      scriptName: SetAndHandleEmpty
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "2"
+    scriptarguments:
+      key:
+        simple: env
+      value:
+        complex:
+          root: ServerURL
+          accessor: URL
+          transformers:
+          - operator: replace
+            args:
+              limit: {}
+              replaceWith:
+                value:
+                  simple: prod
+              toReplace:
+                value:
+                  simple: https://nycdoeprod.crtx.us.paloaltonetworks.com/
+          - operator: replace
+            args:
+              limit: {}
+              replaceWith:
+                value:
+                  simple: dev
+              toReplace:
+                value:
+                  simple: https://nycdoedev.crtx.us.paloaltonetworks.com
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 350
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: 9b0045f3-0e89-4f6b-80f5-ceeb38c1d806
+    type: regular
+    task:
+      id: 9b0045f3-0e89-4f6b-80f5-ceeb38c1d806
+      version: -1
+      name: Alert team the playbook is complete
+      description: Sends an email.
+      script: EWSO365|||send-mail
+      type: regular
+      iscommand: true
+      brand: EWSO365
+    scriptarguments:
+      cc:
+        simple: sjafri2@schools.nyc.gov,azheng6@schools.nyc.gov,jplunkett@paloaltonetworks.com,${teamMembers}
+      htmlBody:
+        simple: "Hello, \n\nBelow are the results for the XSOAR Credential Reset <a
+          href=\"https://02019531897.dev.xsoar.paloaltonetworks.com/#/Custom/dy3xzxurvo/${incident.id}\">Incident
+          ${incident.id}</a>\n\n\n${htmlTable}"
+      subject:
+        simple: 'Credential Reset Complete | XSOAR Incident: ${incident.id}'
+      to:
+        simple: ${incident.owner}
+      using:
+        simple: EWSO365_schools.nyc.gov
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 620,
+          "y": 4135
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "7":
+    id: "7"
+    taskid: 3e8cedd2-b3b8-466a-8f04-293860fbb92e
+    type: regular
+    task:
+      id: 3e8cedd2-b3b8-466a-8f04-293860fbb92e
+      version: -1
+      name: Convert results to HTML table
+      description: Converts a given array to an HTML table
+      scriptName: ListToHTML_v3
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "6"
+    scriptarguments:
+      headers:
+        simple: userid,userEmail,IBM,GSuite,Graph
+      table:
+        complex:
+          root: resetResult
+      title:
+        simple: Credential Reset Result
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 620,
+          "y": 3970
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "8":
+    id: "8"
+    taskid: 4da662c5-8c83-41b5-8669-5e192edb4af3
+    type: regular
+    task:
+      id: 4da662c5-8c83-41b5-8669-5e192edb4af3
+      version: -1
+      name: Set the incident URL
+      description: |-
+        Set a value in context under the key you entered. If no value is entered, the script doesn't do anything.
+
+        This automation runs using the default Limited User role, unless you explicitly change the permissions.
+        For more information, see the section about permissions here:
+        https://docs-cortex.paloaltonetworks.com/r/Cortex-XSOAR/6.10/Cortex-XSOAR-Administrator-Guide/Automations
+      scriptName: SetAndHandleEmpty
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "10"
+    scriptarguments:
+      key:
+        simple: incidentURL
+      value:
+        complex:
+          root: ServerURL
+          accessor: URL
+          transformers:
+          - operator: concat
+            args:
+              prefix: {}
+              suffix:
+                value:
+                  simple: /Custom/caseinfoid/
+          - operator: concat
+            args:
+              prefix: {}
+              suffix:
+                value:
+                  simple: ${incident.id}
+                iscontext: true
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 730,
+          "y": 720
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "10":
+    id: "10"
+    taskid: 835a3314-304e-47c8-8cfc-4914c0f94e67
+    type: regular
+    task:
+      id: 835a3314-304e-47c8-8cfc-4914c0f94e67
+      version: -1
+      name: Send alert to team that export failed
+      description: Sends an email.
+      script: EWSO365|||send-mail
+      type: regular
+      iscommand: true
+      brand: EWSO365
+    nexttasks:
+      '#none#':
+      - "11"
+    scriptarguments:
+      htmlBody:
+        simple: |-
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Email Notification</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      color: #333333;
+                      line-height: 1.6;
+                  }
+                  .container {
+                      width: 80%;
+                      margin: 0 auto;
+                  }
+                  .header {
+                      font-size: 18px;
+                      font-weight: bold;
+                      margin-bottom: 20px;
+                  }
+                  .content {
+                      margin-bottom: 20px;
+                  }
+                  .button {
+                      display: inline-block;
+                      padding: 10px 20px;
+                      font-size: 16px;
+                      color: white;
+                      background-color: #007BFF;
+                      text-decoration: none;
+                      border-radius: 5px;
+                  }
+                  .footer {
+                      margin-top: 30px;
+                      font-size: 14px;
+                      color: #777777;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      Hello,
+                  </div>
+                  <div class="content">
+                      The job to fetch the content backup for the prod XSOAR environment has failed. Please login <a href="${incidentURL}" style="color: #007BFF; text-decoration: underline; font-weight: bold;">here</a> to investigate.
+                  </div>
+                  <div class="content">
+                      <strong>Incident ID:</strong> ${incident.id}
+                  </div>
+                  <div class="footer">
+                      Thanks,<br>
+                      DBot
+                  </div>
+              </div>
+          </body>
+          </html>
+      subject:
+        simple: '[XSOAR] Alert | Failed to get content backup'
+      to:
+        simple: ${inputs.recipient}
+      using:
+        simple: EWSO365_instance_1
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 730,
+          "y": 890
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "11":
+    id: "11"
+    taskid: 40acfd58-65d5-4c3e-8284-ae3d8ea14f37
+    type: regular
+    task:
+      id: 40acfd58-65d5-4c3e-8284-ae3d8ea14f37
+      version: -1
+      name: Close investigation
+      description: commands.local.cmd.close.inv
+      script: Builtin|||closeInvestigation
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      '#none#':
+      - "12"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1090
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "12":
+    id: "12"
+    taskid: f8dd6c80-2239-4a1e-83d8-2e2aca30fa00
+    type: title
+    task:
+      id: f8dd6c80-2239-4a1e-83d8-2e2aca30fa00
+      version: -1
+      name: Done
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1280
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 4180,
+        "width": 660,
+        "x": 450,
+        "y": 50
+      }
+    }
+  }
+inputs:
+- key: recipient
+  value:
+    simple: jplunkett@paloaltonetworks.com
+  required: false
+  description: The email address to send the content bundle to
+  playbookInputQuery: null
+inputSections:
+- inputs:
+  - recipient
+  name: General (Inputs group)
+  description: Generic group for inputs
+outputSections:
+- outputs: []
+  name: General (Outputs group)
+  description: Generic group for outputs
+outputs: []
+dirtyInputs: true
