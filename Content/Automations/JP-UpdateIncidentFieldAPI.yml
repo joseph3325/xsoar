@@ -1,0 +1,82 @@
+commonfields:
+  id: 232bc453-a3b7-4a1b-8d10-be122eb25efe
+  version: 50
+vcShouldKeepItemLegacyProdMachine: false
+name: UpdateIncidentFieldUsingApi
+script: |-
+  instanceUsed = demisto.args().get("instanceUsed")
+  cliName = demisto.args().get('FieldtToUpdate')
+  fieldDisplayScript = demisto.args().get('fieldDisplayScript')
+  fieldTriggerScript = demisto.args().get('fieldChangeScript')
+  fieldDisplayScriptName = ""
+  fieldTriggerScriptID = ""
+  removeFieldDisplayScript = argToBoolean(demisto.args().get('removeFieldDisplayScript'))
+  removeFieldTriggerScript = argToBoolean(demisto.args().get('removeFieldTriggerScript'))
+
+  #if not (removeFieldDisplayScript or removeFieldTriggerScript):
+  if not (fieldDisplayScript or fieldTriggerScript or removeFieldDisplayScript or removeFieldTriggerScript):
+      return_error("You need to pass in either field display script or field trigger script")
+  payload = {}
+
+  res = demisto.executeCommand("core-api-get", {"uri":"/incidentfields","using":instanceUsed})[0]['Contents']['response']
+
+  for response in res:
+      if response['cliName'] == cliName:
+          payload = response
+          break
+
+  if not payload:
+      return_error("Could not find an incident field with machine name " + cliName)
+  body = {}
+
+  if fieldTriggerScript and not removeFieldDisplayScript:
+      body["query"] = "hidden:F AND deprecated:F AND tags:field-change-triggered AND name:"+str(fieldTriggerScript)
+      res = demisto.executeCommand("core-api-post", {"uri":"/automation/search","body":body,"using":instanceUsed})[0]['Contents']['response']['scripts']
+      if res:
+          payload['script'] = res[0]['id']
+      else:
+          return_error('No Matching Script with field-change-triggered tag was found. Please make sure the script exists and is not deprecated or disabled.')
+  else:
+      payload['script'] = ""
+
+  if fieldDisplayScript and not removeFieldDisplayScript:
+      body["query"] = "hidden:F AND deprecated:F AND tags:field-display AND name:"+str(fieldDisplayScript)
+      res = demisto.executeCommand("core-api-post", {"uri":"/automation/search","body":body,"using":instanceUsed})[0]['Contents']['response']['scripts']
+      if res:
+          payload['fieldCalcScript'] = fieldDisplayScript
+      else:
+          return_error('No Matching Script with field-display tag was found. Please make sure the script exists and is not deprecated or disabled.')
+  else:
+      payload['fieldCalcScript'] = ""
+
+  demisto.executeCommand("core-api-post", {"uri":"/incidentfield","body":payload,"using":instanceUsed})
+type: python
+tags: []
+enabled: true
+args:
+- name: FieldtToUpdate
+  required: true
+  description: CLI Name of field to update. This is same as machine name.
+- name: instanceUsed
+- name: fieldChangeScript
+- name: fieldDisplayScript
+- name: removeFieldDisplayScript
+  auto: PREDEFINED
+  predefined:
+  - "True"
+  - "False"
+  defaultValue: "False"
+- name: removeFieldTriggerScript
+  auto: PREDEFINED
+  predefined:
+  - "True"
+  - "False"
+  defaultValue: "False"
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.11.10.111526
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
