@@ -1,0 +1,155 @@
+commonfields:
+  id: 512da345-9597-42a1-8f2a-a84838547211
+  version: 51
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-UpdateIncidentFieldUsingApi
+script: |+
+  instanceUsed = demisto.args().get("instanceUsed")
+  cliName = demisto.args().get('FieldtToUpdate')
+  fieldDisplayScript = demisto.args().get('fieldDisplayScript')
+  fieldTriggerScript = demisto.args().get('fieldChangeScript')
+  fieldDisplayScriptName = ""
+  fieldTriggerScriptID = ""
+  removeFieldDisplayScript = argToBoolean(demisto.args().get('removeFieldDisplayScript'))
+  removeFieldTriggerScript = argToBoolean(demisto.args().get('removeFieldTriggerScript'))
+  incidentType = demisto.args().get('incidentType')
+  removeIncidentType = demisto.args().get('removeIncidentType')
+
+  #if not (removeFieldDisplayScript or removeFieldTriggerScript):
+  if not (fieldDisplayScript or fieldTriggerScript or removeFieldDisplayScript or removeFieldTriggerScript or incidentType or removeIncidentType):
+      return_error("You need to pass in either field display script or field trigger script")
+
+  payload = {}
+
+  res = demisto.executeCommand("core-api-get", {"uri":"/incidentfields","using":instanceUsed})[0]['Contents']['response']
+
+  for response in res:
+      if response['cliName'] == cliName:
+          payload = response
+          break
+
+
+  if not payload:
+      return_error("Could not find an incident field with machine name " + cliName)
+
+  def get_automation(script_name, instance=instanceUsed):
+      """
+      script_type can be script or fieldCalcScript
+      fieldCalcScript: set for field-display-scripts
+      script: set for field-triggered-scripts
+      """
+
+      body = {}
+      body['query'] = f"hidden:F AND deprecated:F AND tags:field-change-triggered AND name:{script_name}"
+      res = demisto.executeCommand("core-api-post", {"uri":"/automation/search","body":body,"using":instance})[0]['Contents']['response']['scripts']
+
+      if res[0]['id']:
+          return res[0]['id']
+      else:
+          return_error('No Matching Script with required tag was found. Please make sure the script exists and is not deprecated or disabled.')
+
+
+  def get_all_types():
+      """
+      returns an array of dicts where the key is the lowercase version of the type and the value is the raw type value
+      ex: [{"my type": "My Type"}]
+      """
+      all_types_raw = demisto.executeCommand("core-api-get", {"uri":"/incidenttype", "using": instanceUsed})[0]['Contents']['response']
+      all_types = [{x['name'].lower(): x['name']} for x in all_types_raw]
+      return all_types
+
+  def get_normalized_type(target_types, inc_types):
+
+      target_types = [x.lower() for x in target_types]
+
+      matched = [list(d.values())[0] for d in inc_types if any(k in d for k in target_types)]
+
+      if not matched: return_error('No matching incident type found')
+
+      return matched
+
+
+
+  # if these fields are set, query the api to get their ID and set the ID to the payload
+  if fieldDisplayScript:
+      # field display script needs the name passed not the ID
+      fd_id = get_automation(fieldDisplayScript)
+      if fd_id: payload['fieldCalcScript'] = fieldDisplayScript
+      else: return_error('Unable to find target field display script')
+  # field triggered script accepts the ID
+  if fieldTriggerScript: payload['script'] = get_automation(fieldTriggerScript)
+  # if there are scripts to be removed, blank out the payload value
+  if removeFieldDisplayScript: payload['fieldCalcScript'] = ""
+  if removeFieldTriggerScript: payload['script'] = ""
+  # process incident types
+  if incidentType or removeIncidentType:
+      # get a list of all types from api - this can be used to normalize the given type to make inputs case insensitive
+      all_types = get_all_types()
+
+      # get the current types associated with the field
+      current_types = payload.get('associatedTypes', [])
+      # if there are types to add
+      if incidentType:
+          incident_types = incidentType.split(',')
+          incident_types = [x.strip() for x in incident_types]
+          incident_types = get_normalized_type(incident_types, all_types)
+          current_types += incident_types
+      # if there are types to remove
+      if removeIncidentType:
+          remove_types = removeIncidentType.split(',')
+          remove_types = [x.strip() for x in remove_types]
+          remove_types = get_normalized_type(remove_types, all_types)
+          current_types = [x for x in current_types if x not in remove_types]
+      # update the payload
+      payload['associatedTypes'] = list(set(current_types))
+
+
+  demisto.executeCommand("core-api-post", {"uri":"/incidentfield","body": payload,"using": instanceUsed})
+
+  return_results(CommandResults(readable_output='Script has completed'))
+
+
+
+
+
+
+
+
+
+
+
+type: python
+tags: []
+enabled: true
+args:
+- name: FieldtToUpdate
+  required: true
+  description: CLI Name of field to update. This is same as machine name.
+- name: instanceUsed
+  defaultValue: Core REST API_instance_3
+- name: fieldChangeScript
+- name: fieldDisplayScript
+- name: removeFieldDisplayScript
+  auto: PREDEFINED
+  predefined:
+  - "True"
+  - "False"
+  defaultValue: "False"
+- name: removeFieldTriggerScript
+  auto: PREDEFINED
+  predefined:
+  - "True"
+  - "False"
+  defaultValue: "False"
+- name: incidentType
+  description: The incident types to add to the field. Accepts comma separated list.
+- name: removeIncidentType
+  description: A comma separated list of incident types to be removed from the alert
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.11.10.111526
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
