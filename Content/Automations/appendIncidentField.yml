@@ -1,0 +1,46 @@
+commonfields:
+  id: b093237e-e372-4c3e-826b-a79a82ae17f5
+  version: 14
+vcShouldKeepItemLegacyProdMachine: false
+name: appendIncidentField
+script: |-
+  # get the initial args
+  value = demisto.args()['value']
+  field = demisto.args()['incidentField']
+  inc_id = demisto.args()['incidentID']
+  # get the target incident
+  inc = demisto.executeCommand("getIncidents", {'id': inc_id})[0]['Contents']
+  # try to pull the current value of the field
+  currentfield = inc.get('data')[0].get('CustomFields', {}).get(field)
+  # if there is not already a value, set the value here
+  if not currentfield:
+      currentfield = value
+  # if there is an existing value, ensure it is an array and append the new value
+  else:
+      if not isinstance(currentfield, list): currentfield = [currentfield]
+      currentfield.append(value)
+  # set the updated array to the target incident
+  demisto.executeCommand('setIncident', {field: currentfield, 'id': inc_id})
+  # log the completion message to the war room
+  return_results(CommandResults(readable_output=f'Field: {field} updated with value: {value} for incident: {inc_id}'))
+type: python
+tags: []
+enabled: true
+args:
+- name: value
+  required: true
+  description: The value to be appended to the incident field
+- name: incidentField
+  required: true
+  description: The machine name of the target incident field
+- name: incidentID
+  required: true
+  defaultValue: The ID of the target incident
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.10.14.99144
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
