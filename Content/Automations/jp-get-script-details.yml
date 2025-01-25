@@ -1,0 +1,60 @@
+commonfields:
+  id: bc7dd995-cd69-49cb-8ad3-7c54333fd338
+  version: 18
+vcShouldKeepItemLegacyProdMachine: false
+name: jp-get-script-details
+script: |2-
+
+  instance = demisto.args()['coreInstance']
+  script = demisto.args()['scriptName']
+
+  def get_automation(script_name, instance):
+      """
+      script_type can be script or fieldCalcScript
+      fieldCalcScript: set for field-display-scripts
+      script: set for field-triggered-scripts
+      """
+
+      if '-' in script_name: script_name = script_name.replace('-', r'\-')
+
+      body = {}
+      body['query'] = f'hidden:F AND deprecated:F AND name:"{script_name}"'
+
+      try:
+          result = execute_command("core-api-post", {"uri":"/automation/search","body": body,"using": instance})['response']['scripts'][0]
+
+      except:
+          result = []
+
+      return result
+
+
+
+  r = get_automation(script, instance)
+
+  if r:
+      if not isinstance(r, list): r = [r]
+
+      md = tableToMarkdown("Script Details", r, headers=['name', 'id', 'user'])
+
+  else: md = 'Script not found'
+
+  return_results(CommandResults(outputs={'scriptDetails': r}, readable_output=md))
+type: python
+tags: []
+enabled: true
+args:
+- name: scriptName
+- name: coreInstance
+  description: The core-rest-api instance to use for internal calls
+  defaultValue: Core REST API_instance_3
+outputs:
+- contextPath: scriptDetails
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.12.8.1983910
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
