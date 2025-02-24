@@ -1,0 +1,46 @@
+commonfields:
+  id: 2cd15729-6dd7-4ba2-89bb-ce931391de17
+  version: 11
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-ConvertContentUpdateHTML
+script: |2-
+
+
+  logs = demisto.args()["logs"]
+
+
+  if not isinstance(logs, list): logs = [logs]
+
+
+  html = ''
+
+
+  for each in logs:
+
+      r = execute_command("ListToHTML_v3", {"table": each.get('changeLog', []), "title": each.get('name', 'Unknown')})
+
+      html += r['htmlTable']
+      html += '<p></p>'
+
+
+
+  return_results(CommandResults(outputs={'htmlTable': html}, readable_output='Done'))
+type: python
+tags: []
+comment:
+  This script will be used within the content update use case. The script takes
+  the update logs and formats them into HTML
+enabled: true
+args:
+  - name: logs
+    isArray: true
+outputs:
+  - contextPath: htmlTable
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.9.7.24076
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
