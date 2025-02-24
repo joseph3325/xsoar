@@ -1,0 +1,410 @@
+id: fa5054d5-c660-48e6-8793-0323a96b9671
+version: 25
+vcShouldKeepItemLegacyProdMachine: false
+name: JP - Check Marketplace Updates
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: 740cb0c8-3a38-4ed1-83ef-a5cb0ff0354f
+    type: start
+    task:
+      id: 740cb0c8-3a38-4ed1-83ef-a5cb0ff0354f
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "2"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "2":
+    id: "2"
+    taskid: 34e9b9dd-ba9d-49f7-86c4-2a8b945d62a8
+    type: regular
+    task:
+      id: 34e9b9dd-ba9d-49f7-86c4-2a8b945d62a8
+      version: -1
+      name: Get installed content packs
+      description: send HTTP GET requests.
+      script: Core REST API|||core-api-get
+      type: regular
+      iscommand: true
+      brand: Core REST API
+    nexttasks:
+      "#none#":
+        - "4"
+    scriptarguments:
+      extend-context:
+        simple: installedPacks=.response=val
+      uri:
+        simple: /xsoar/public/v1/contentpacks/metadata/installed
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 220
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "4":
+    id: "4"
+    taskid: ee14ef13-cc82-434f-8fda-c276bec698a6
+    type: regular
+    task:
+      id: ee14ef13-cc82-434f-8fda-c276bec698a6
+      version: -1
+      name: Get pack details
+      scriptName: JP-GetPendingUpdates
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "5"
+    scriptarguments:
+      installedPacks:
+        complex:
+          root: installedPacks
+          filters:
+            - - operator: isTrue
+                left:
+                  value:
+                    simple: installedPacks.updateAvailable
+                  iscontext: true
+          transformers:
+            - operator: uniq
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 430
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "5":
+    id: "5"
+    taskid: c6c6c57b-dca8-4d6b-8826-c6e602b86816
+    type: condition
+    task:
+      id: c6c6c57b-dca8-4d6b-8826-c6e602b86816
+      version: -1
+      name: Are there updates available?
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#default#":
+        - "7"
+      "yes":
+        - "6"
+    separatecontext: false
+    conditions:
+      - label: "yes"
+        condition:
+          - - operator: isExists
+              left:
+                value:
+                  complex:
+                    root: packDetails
+                    filters:
+                      - - operator: isNotEmpty
+                          left:
+                            value:
+                              simple: packDetails
+                            iscontext: true
+                iscontext: true
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 451,
+          "y": 624
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "6":
+    id: "6"
+    taskid: b7a8d5d6-a859-4c22-9b69-aa05ef1e6765
+    type: title
+    task:
+      id: b7a8d5d6-a859-4c22-9b69-aa05ef1e6765
+      version: -1
+      name: Build Report
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "13"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 103,
+          "y": 857
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "7":
+    id: "7"
+    taskid: 12790e35-1ae1-4752-b459-e42c5e2f306c
+    type: title
+    task:
+      id: 12790e35-1ae1-4752-b459-e42c5e2f306c
+      version: -1
+      name: Exit Job
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "9"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 756,
+          "y": 857
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "9":
+    id: "9"
+    taskid: c4faa81f-117f-4e41-bc27-d29f26645b88
+    type: regular
+    task:
+      id: c4faa81f-117f-4e41-bc27-d29f26645b88
+      version: -1
+      name: Log results
+      description: Prints text to war room (Markdown supported)
+      scriptName: Print
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "10"
+    scriptarguments:
+      value:
+        simple: No updates found
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 757,
+          "y": 1015
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "10":
+    id: "10"
+    taskid: b6dd12e1-428b-4469-984e-24f1b2d0119b
+    type: regular
+    task:
+      id: b6dd12e1-428b-4469-984e-24f1b2d0119b
+      version: -1
+      name: Close job
+      description: commands.local.cmd.close.inv
+      script: Builtin|||closeInvestigation
+      type: regular
+      iscommand: true
+      brand: Builtin
+    nexttasks:
+      "#none#":
+        - "11"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 466,
+          "y": 1493
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "11":
+    id: "11"
+    taskid: 95fe1bc1-1df1-4815-ba93-9ebc3c17e596
+    type: title
+    task:
+      id: 95fe1bc1-1df1-4815-ba93-9ebc3c17e596
+      version: -1
+      name: Done
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 466,
+          "y": 1646
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "12":
+    id: "12"
+    taskid: 4f9684ce-b3d1-4e3f-8ec8-2f8e4d101247
+    type: regular
+    task:
+      id: 4f9684ce-b3d1-4e3f-8ec8-2f8e4d101247
+      version: -1
+      name: Send mail to team
+      description: Sends an email using Microsoft Graph.
+      script: Microsoft Graph Mail Single User|||send-mail
+      type: regular
+      iscommand: true
+      brand: Microsoft Graph Mail Single User
+    nexttasks:
+      "#none#":
+        - "10"
+    scriptarguments:
+      htmlBody:
+        simple: |-
+          <p>Hello,</p>
+          <p>Below are the pending content updates</p>
+
+          ${htmlTable}
+      subject:
+        simple: Pending Content Updates
+      to:
+        simple: email@user.com
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 103,
+          "y": 1217
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "13":
+    id: "13"
+    taskid: 66b71251-d6a1-47f0-b979-f2bc9d129fa9
+    type: regular
+    task:
+      id: 66b71251-d6a1-47f0-b979-f2bc9d129fa9
+      version: -1
+      name: Convert to HTML
+      description:
+        This script will be used within the content update use case. The
+        script takes the update logs and formats them into HTML
+      scriptName: JP-ConvertContentUpdateHTML
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      "#none#":
+        - "12"
+    scriptarguments:
+      logs:
+        simple: ${packDetails}
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 103,
+          "y": 1015
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1656,
+        "width": 1035,
+        "x": 103,
+        "y": 50
+      }
+    }
+  }
+inputs: []
+outputs: []
