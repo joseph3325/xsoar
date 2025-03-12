@@ -1,0 +1,153 @@
+commonfields:
+  id: 255effdc-b077-4492-8f90-3833c356dd4d
+  version: 3
+vcShouldKeepItemLegacyProdMachine: false
+name: ListToHTML_v3
+script: |
+  HTML_ENTITY_MAP = {
+    #'&': '&amp;',
+    #'<': '&lt;',
+    #'>': '&gt;',
+    #'"': '&quot;',
+    #"'": '&#39;',
+    #'/': '&#x2F;',
+    #'`': '&#x60;',
+    #'=': '&#x3D;'
+    '%': '%'
+  }
+
+  def format_cell(cell) ->str:
+      if isinstance(cell, str):
+          return cell
+      if isinstance(cell, list):
+          return ','.join(cell)
+      else:
+          return str(cell)
+
+
+  def string_escape_HTML(in_str: str) -> str:
+      out = ''
+      for c in in_str:
+          if c in HTML_ENTITY_MAP:
+              out+= HTML_ENTITY_MAP[c]
+          else:
+              out+=c
+      return out
+
+
+  def check_for_header_labels(headers, table):
+      # this function allows the user to add human readable headers with a ':' symbol.
+      # for example, if headers are given as 'xdr_id:XDR ID' - the function will update the object to use the 'XDR ID' version of the header
+
+      result = []
+      updated_headers = []
+      hs = {}
+      for each in headers:
+          if ':' in each:
+                 orig_head, human_head = each.split(':')
+                 hs[orig_head] = human_head
+
+                 if human_head not in updated_headers: updated_headers.append(human_head)
+
+          else:
+                 hs[each] = each
+                 if each not in updated_headers: updated_headers.append(each)
+
+
+      for each in table:
+          tmp = {}
+
+          for k, v in each.items():
+              tmp[hs[k]] = v
+
+          result.append(tmp)
+
+      return result, updated_headers
+
+
+  def table_to_HTML(title: str, t: dict, headers: str) -> str:
+      if t and not isinstance(t, list):
+          t = [t]
+
+      if not headers:
+          headers=t[0].keys()
+      else:
+
+          headers = headers.split(',')
+
+          t, headers = check_for_header_labels(headers, t)
+
+
+      html_results = ''
+
+      if title:
+          html_results = '<h3>' + title + '</h3>'
+
+
+      if t and len(t) > 0:
+          html_results += '<table border="1" cellspacing="0" cellpadding="3" style="font-family: Arial, Helvetica, sans-serif; border-collapse: collapse; width: 100%; position: relative;"><tr>' + ''.join([f'<th style="padding-top: 12px; padding-bottom: 12px; text-align: left; background-color: #02447F;color: white; position: sticky; top: 0;">{x}</th>' for x in headers]) + '</tr>'
+
+          for entry in t:
+              vals = []
+              for head in headers:
+                  try:
+                      vals.append(string_escape_HTML(format_cell(entry[head])))
+                  except KeyError:
+                      pass
+
+              if t.index(entry) % 2:
+                  html_results += '<tr>' + ''.join([f'<td style="border: 1px solid #ddd; padding: 8px;">{x}</td>' for x in vals]) + '</tr>'
+              else:
+                  html_results += '<tr style="background-color: #f2f2f2;">' + ''.join([f'<td style="border: 1px solid #ddd; padding: 8px;">{x}</td>' for x in vals]) + '</tr>'
+          html_results+= '</table>'
+      else:
+          return "Data does not exist"
+
+      return CommandResults(
+      outputs={'htmlTable': html_results},
+      readable_output=html_results
+      )
+
+  def main():
+      args = demisto.args()
+      title = args.get('title')
+      table = args.get('table')
+      headers = args.get('headers')
+
+      try:
+          return_results(table_to_HTML(title, table, headers))
+      except Exception as e:
+          demisto.error(traceback.format_exc())  # print the traceback
+          return_error("\n".join(("Failed to execute {command} command.", "Error:", str(e))))
+
+
+  if __name__ in ('__main__', '__builtin__', 'builtins'):
+      main()
+type: python
+tags:
+- Utility
+comment: Converts a given array to an HTML table
+enabled: true
+args:
+- name: table
+  required: true
+  default: true
+  description: The table to convert to HTML
+  isArray: true
+- name: title
+  description: The optional title for the table
+- name: headers
+  description: 'A comma separated list of headers for each object (the keys).  If
+    you want to map a header to a human readable value, the header can be provided
+    in the format "original_header:humanReadable" where the value after the colon
+    is set as the header. '
+outputs:
+- contextPath: htmlTable
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.10.8.36650
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
