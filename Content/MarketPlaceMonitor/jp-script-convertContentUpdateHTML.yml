@@ -1,0 +1,62 @@
+commonfields:
+  id: 2cd15729-6dd7-4ba2-89bb-ce931391de17
+  version: 36
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-ConvertContentUpdateHTML
+script: |-
+  import re
+
+  def remove_words(text, words):
+      # Create a pattern to match the whole tags
+      pattern = '|'.join(re.escape(word) for word in words)
+      # Substitute the patterns in the text with an empty string
+      cleaned_text = re.sub(pattern, '', text)
+      # Remove any extra spaces or newlines left after removal
+      cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+      # cleaned_text = text.replace('<!DOCTYPE html>', '').replace('</html>', '').replace('<html>', '').replace('</body>', '')
+      return cleaned_text
+      # return text
+
+  target_words = ['<!DOCTYPE html>', '<html>', '</html>', '</body>']
+
+  logs = demisto.args()["logs"]
+
+  if not isinstance(logs, list): logs = [logs]
+
+  html = ''
+
+  for each in logs:
+      changelog = each.get('changeLog', [])
+
+      if not isinstance(changelog, list): changelog = [changelog]
+      if changelog:
+          for entry in changelog:
+              if entry.get('releaseNotes'):
+                  html_raw = remove_words(execute_command("mdToHtml", {'text': entry['releaseNotes']}), target_words)
+                  entry['releaseNotes'] = html_raw
+
+      r = execute_command("ListToHTML_v3", {"table": changelog, "title": each.get('name', 'Unknown')})
+
+      html += r['htmlTable']
+      html += '<p></p>'
+
+
+  return_results(CommandResults(outputs={'htmlTable': html}, readable_output='Done'))
+type: python
+tags: []
+comment: This script will be used within the content update use case. The script takes
+  the update logs and formats them into HTML
+enabled: true
+args:
+- name: logs
+  isArray: true
+outputs:
+- contextPath: htmlTable
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.9.7.24076
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
