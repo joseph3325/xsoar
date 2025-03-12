@@ -1,0 +1,112 @@
+commonfields:
+  id: ed891662-c4ab-43e2-84ae-8a65e7cc55e3
+  version: 5
+vcShouldKeepItemLegacyProdMachine: false
+name: JP-GetPendingUpdates
+script: |
+  def order_change_logs(change_logs, current_version):
+
+      data_list = [(version, details) for version, details in change_logs.items()]
+      data_list_sorted = sorted(data_list, key=lambda x: datetime.fromisoformat(x[1]["released"].replace("Z", "+00:00")))
+      ordered_list = [{"version": version, **details} for version, details in data_list_sorted]
+
+      # Find the index of the given version
+      index = next((i for i, item in enumerate(ordered_list) if item["version"] == current_version), None)
+
+      if index is None:
+          return []  # Version not found, return an empty list
+
+      # Return the sublist after the found index
+      return ordered_list[index + 1:]
+
+
+
+
+
+
+  # get the target packs from the endpoint: /xsoar/public/v1/contentpacks/metadata/installed
+  """
+  Note the installed packs should have a schema of:
+
+  {
+      "currentVersion: "1.0",
+      "id": "CommonReports",
+      "lastInstallDate": "2024-10-25T16:53:00.713223889Z",
+      "name": "Common Reports",
+      "propagationLabels: ["all"],
+      "updateAvailable": true,
+      "userIsSubscribedToNotifications": false
+  }
+
+  """
+  installed_packs = demisto.args().get('installedPacks', [])
+  core_instance = demisto.args()['coreAPIInstance']
+  # if installed_packs:
+  # if not a list convert to a list
+  if not isinstance(installed_packs, list): installed_packs = [installed_packs]
+  # define the error and result objects
+  errors = []
+  details = []
+  already_found = []
+  installed_names = [x['name'] for x in installed_packs]
+  # loop through each provided pack and call to the api for resulst
+  for each in installed_packs:
+      # if the target pack was already found skip this iteration
+      if each['name'] in already_found: continue
+      # call to the endpoint
+      r = execute_command('core-api-post', {'body': {"packsQuery": each['name'], "page": 0, "size": 10}, 'uri': '/xsoar/public/v1/contentpacks/marketplace/search', 'using': core_instance})
+
+      try:
+          packs = r['response']['packs']
+
+          for pack in packs:
+              # define the object to hold the parsed results
+              parsed = {}
+              # if the pack name is in the provided installed packs
+              if pack['name'] in installed_names: # grab relevant data and set to the parsed object
+                  parsed['id'] = pack['id']
+                  parsed['name'] = pack['name']
+                  # parsed['changeLog'] = order_change_logs(pack['changelog'], each['currentVersion'])
+                  parsed['changeLog'] = pack['changelog']
+
+                  # append the target details to the result object
+                  details.append(parsed)
+                  # append the pack name to the tracker array
+                  already_found.append(pack['name'])
+
+      except Exception as e:
+          errors.append(e)
+
+  sorted_details = []
+
+  for each in installed_packs:
+      for d in details:
+          if each['name'] == d['name']:
+
+              d['changeLog'] = order_change_logs(d['changeLog'], each['currentVersion'])
+              d['currentVersion'] = each['currentVersion']
+
+
+  md = f'{len(installed_packs)} packs provided. {len(details)} packs found'
+
+  return_results(CommandResults(readable_output=md, outputs={'packDetails': details, 'errors': errors}))
+type: python
+tags: []
+enabled: true
+args:
+- name: installedPacks
+  isArray: true
+- name: coreAPIInstance
+  required: true
+  description: The instance of the Core Rest API to use
+  defaultValue: Core REST API_instance_3
+outputs:
+- contextPath: packDetails
+scripttarget: 0
+subtype: python3
+pswd: ""
+runonce: false
+dockerimage: demisto/python3:3.12.8.1983910
+runas: DBotWeakRole
+engineinfo: {}
+mainengineinfo: {}
